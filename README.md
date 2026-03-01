@@ -5,7 +5,9 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Скраппер-юзербот для Telegram на Go с интерфейсом для просмотра собранных данных
-[](docs/example.png)
+
+http://git.maxaer.cfd/Maxaer/TeleScrap/src/branch/main/docs/example.png
+
 ## Функционал
 
 - Сбор сообщений, а так же файлов из каналов или личных сообщений
