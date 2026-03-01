@@ -6,7 +6,7 @@
 
 Скраппер-юзербот для Telegram на Go с интерфейсом для просмотра собранных данных
 
-http://git.maxaer.cfd/Maxaer/TeleScrap/src/branch/main/docs/example.png
+[example](http://git.maxaer.cfd/Maxaer/TeleScrap/src/branch/main/docs/example.png)
 
 ## Функционал
 
