@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeleScrap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #0f1520;
+            --bg-tertiary: #141c28;
+            --fg-primary: #e8f0f8;
+            --fg-secondary: #8b9cb5;
+            --fg-muted: #4a5b75;
+            --accent-green: #00e5a0;
+            --accent-green-dim: rgba(0, 229, 160, 0.15);
+            --accent-violet: #8b5cf6;
+            --accent-violet-dim: rgba(139, 92, 246, 0.15);
+            --accent-blue: #1e3a5f;
+            --accent-blue-bright: #2563eb;
+            --glass-bg: rgba(20, 35, 55, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.12);
+            --glass-shadow: rgba(0, 0, 0, 0.4);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--fg-primary);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .bg-effects {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+        }
+        .bg-orb {
+            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+        .bg-orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, var(--accent-green) 0%, transparent 70%); top: -150px; left: -100px; }
+        .bg-orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, var(--accent-violet) 0%, transparent 70%); bottom: -200px; right: -150px; animation-delay: -7s; }
+        .bg-orb-3 { width: 400px; height: 400px; background: radial-gradient(circle, var(--accent-blue-bright) 0%, transparent 70%); top: 50%; left: 30%; animation-delay: -14s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -20px) scale(1.05); }
+            50% { transform: translate(-20px, 30px) scale(0.95); }
+            75% { transform: translate(20px, 20px) scale(1.02); }
+        }
+        .bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 50px 50px; }
+
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); box-shadow: 0 8px 32px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+        }
+        .glass-panel-light { background: rgba(30, 50, 75, 0.5); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); }
+
+        .app-container { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; padding: 16px; gap: 16px; }
+        .app-header { display: flex; align-items: center; gap: 14px; padding: 12px 20px; border-radius: var(--radius-xl); }
+        .app-logo { display: flex; align-items: center; gap: 12px; }
+        .app-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-green), var(--accent-violet)); border-radius: 10px; }
+        .app-title { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--accent-green), var(--accent-violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .main-content { display: flex; flex: 1; min-height: 0; gap: 16px; }
+
+        .nav-panel { width: 220px; display: flex; flex-direction: column; gap: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: var(--radius-lg); cursor: pointer; transition: all 0.3s; }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(4px); }
+        .nav-item.active { background: linear-gradient(135deg, var(--accent-green-dim), var(--accent-violet-dim)); border: 1px solid rgba(0, 229, 160, 0.3); }
+        .nav-item.active .nav-icon { color: var(--accent-green); }
+        .nav-icon { width: 22px; height: 22px; opacity: 0.8; }
+        .nav-label { font-weight: 500; font-size: 14px; }
+
+        .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .content-header { padding: 20px 24px; border-radius: var(--radius-xl); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .content-title { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--fg-primary), var(--accent-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .content-body { flex: 1; display: flex; gap: 16px; min-height: 0; }
+
+        .chat-list-panel { width: 320px; display: flex; flex-direction: column; border-radius: var(--radius-xl); overflow: hidden; }
+        .chat-list-header { padding: 16px 20px; border-bottom: 1px solid var(--glass-border); }
+        .chat-search { width: 100%; padding: 12px 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: var(--radius-md); color: var(--fg-primary); font-size: 14px; outline: none; }
+        .chat-search:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px var(--accent-green-dim); }
+        .chat-list { flex: 1; overflow-y: auto; padding: 8px; }
+        
+        .chat-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.25s; margin-bottom: 4px; }
+        .chat-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .chat-item.active { background: linear-gradient(135deg, var(--accent-green-dim), var(--accent-violet-dim)); border: 1px solid rgba(0, 229, 160, 0.25); }
+        .chat-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; }
+        .chat-avatar.group { background: linear-gradient(135deg, var(--accent-green), #00a878); color: var(--bg-primary); }
+        .chat-avatar.user { background: linear-gradient(135deg, var(--accent-blue-bright), var(--accent-violet)); }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-preview { font-size: 12px; color: var(--fg-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-meta { text-align: right; }
+        .chat-time { font-size: 11px; color: var(--fg-muted); margin-bottom: 4px; }
+        .chat-badge { background: var(--accent-green); color: var(--bg-primary); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+
+        .messages-panel { flex: 1; display: flex; flex-direction: column; border-radius: var(--radius-xl); overflow: hidden; }
+        .messages-toolbar { padding: 12px 20px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .tab-switcher { display: flex; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-md); padding: 4px; }
+        .tab-btn { padding: 10px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.25s; border: none; background: transparent; color: var(--fg-secondary); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--accent-green), var(--accent-violet)); color: var(--bg-primary); font-weight: 600; }
+        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        
+        .message-item { max-width: 70%; padding: 14px 18px; border-radius: var(--radius-lg); position: relative; animation: messageIn 0.3s ease-out; }
+        @keyframes messageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message-item.incoming { background: var(--glass-bg); border: 1px solid var(--glass-border); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .message-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .message-sender { font-weight: 600; font-size: 13px; color: var(--accent-green); }
+        .message-time { font-size: 11px; color: var(--fg-muted); }
+        .message-content { font-size: 14px; line-height: 1.5; color: var(--fg-primary); }
+
+        .users-grid, .groups-panel { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .user-card, .group-card { padding: 24px; border-radius: var(--radius-xl); cursor: pointer; transition: all 0.3s; }
+        .user-card:hover, .group-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); }
+        .user-card-header, .group-card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .user-avatar-large, .group-icon { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-green), var(--accent-violet)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 24px; color: var(--bg-primary); }
+        .group-icon { width: 48px; height: 48px; font-size: 18px; border-radius: var(--radius-md); }
+
+        .add-group-form { display: flex; gap: 12px; margin-bottom: 24px; grid-column: 1 / -1; }
+        .add-group-input { flex: 1; padding: 14px 18px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: var(--radius-md); color: var(--fg-primary); font-size: 14px; outline: none; }
+        .add-group-input:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px var(--accent-green-dim); }
+        .add-group-btn { padding: 14px 24px; background: linear-gradient(135deg, var(--accent-green), var(--accent-violet)); border: none; border-radius: var(--radius-md); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s; white-space: nowrap; }
+        .add-group-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 229, 160, 0.3); }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .panel-hidden { display: none !important; }
+        .panel-visible { display: flex !important; }
+        
+        .stagger-item { opacity: 0; transform: translateY(20px); animation: staggerIn 0.5s ease-out forwards; }
+        @keyframes staggerIn { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="app-container">
+        <header class="app-header glass-panel">
+            <div class="app-logo">
+                <div class="app-icon"></div>
+                <h1 class="app-title">TeleScrap</h1>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <nav class="nav-panel glass-panel" role="navigation">
+                <div class="nav-item active" data-panel="chats" tabindex="0">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span class="nav-label">Чаты</span>
+                </div>
+                <div class="nav-item" data-panel="users" tabindex="0">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                    <span class="nav-label">Пользователи</span>
+                </div>
+                <div class="nav-item" data-panel="groups" tabindex="0">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91z"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span class="nav-label">Группы</span>
+                </div>
+            </nav>
+
+            <main class="content-area">
+                {{ template "content" . }}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const appData = {
+            chats: [],
+            users: [],
+            groups: [],
+            messages: []
+        };
+
+        let currentPanel = 'chats';
+        let currentChat = null;
+
+        const navItems = document.querySelectorAll('.nav-item');
+        const panels = {
+            chats: document.getElementById('chats-panel'),
+            users: document.getElementById('users-panel'),
+            groups: document.getElementById('groups-panel')
+        };
+
+        async function fetchAPI(endpoint) {
+            try {
+                const res = await fetch(endpoint);
+                return await res.json();
+            } catch (e) {
+                console.error("API Error:", e);
+                return [];
+            }
+        }
+
+        function renderChatList() {
+            const chatList = document.getElementById('chat-list');
+            chatList.innerHTML = appData.chats.map((chat, index) => `
+                <div class="chat-item stagger-item ${currentChat === chat.ID ? 'active' : ''}" 
+                     data-chat-id="${chat.ID}" style="animation-delay: ${index * 0.05}s">
+                    <div class="chat-avatar group">${chat.Name ? chat.Name.charAt(0) : 'G'}</div>
+                    <div class="chat-info">
+                        <div class="chat-name">${chat.Name || 'Unnamed Group'}</div>
+                        <div class="chat-preview">${chat.Description || 'No description'}</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div class="chat-time">${chat.Subscribers} subs</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.addEventListener('click', () => selectChat(item.dataset.chatId));
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            if (!currentChat) {
+                container.innerHTML = '<div style="color: var(--fg-muted); text-align: center; padding: 50px;">Выберите чат</div>';
+                return;
+            }
+            
+            const msgs = appData.messages.filter(m => m.GroupID === currentChat);
+            if (msgs.length === 0) {
+                container.innerHTML = '<div style="color: var(--fg-muted); text-align: center; padding: 50px;">Нет сообщений</div>';
+                return;
+            }
+
+            container.innerHTML = msgs.map((msg, index) => `
+                <div class="message-item incoming stagger-item" style="animation-delay: ${index * 0.05}s">
+                    <div class="message-header">
+                        <span class="message-sender">User #${msg.SenderID}</span>
+                        <span class="message-time">${new Date(msg.CreatedAt).toLocaleString()}</span>
+                    </div>
+                    <div class="message-content">${msg.Message || 'Media/File'}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderUsers() {
+            const grid = document.getElementById('users-grid');
+            grid.innerHTML = appData.users.map((user, index) => `
+                <div class="user-card glass-panel stagger-item" style="animation-delay: ${index * 0.08}s">
+                    <div class="user-card-header">
+                        <div class="user-avatar-large">${user.FirstName ? user.FirstName.charAt(0) : '?'}</div>
+                        <div class="user-card-info">
+                            <h3>${user.FirstName} ${user.LastName} <span style="font-size: 13px; color: var(--fg-muted);">#${user.ID}</span></h3>
+                            <p>@${user.Username}</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: var(--fg-secondary);">${user.Description || ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderGroups() {
+            const list = document.getElementById('groups-list');
+            const items = appData.groups.map((group, index) => `
+                <div class="group-card glass-panel-light stagger-item" style="animation-delay: ${index * 0.08}s">
+                    <div class="group-card-header">
+                        <div class="group-icon">${group.Name ? group.Name.charAt(0) : 'G'}</div>
+                        <div>
+                            <h3>${group.Name} <span style="font-size: 13px; color: var(--fg-muted);">#${group.ID}</span></h3>
+                            <p>${group.Subscribers} участников</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: var(--fg-secondary);">${group.Description || ''}</p>
+                </div>
+            `).join('');
+            
+            list.innerHTML = items;
+        }
+
+        function selectPanel(panelId) {
+            currentPanel = panelId;
+            navItems.forEach(item => item.classList.toggle('active', item.dataset.panel === panelId));
+            
+            Object.entries(panels).forEach(([id, panel]) => {
+                if (id === panelId) {
+                    panel.classList.remove('panel-hidden');
+                    panel.classList.add('panel-visible');
+                } else {
+                    panel.classList.add('panel-hidden');
+                    panel.classList.remove('panel-visible');
+                }
+            });
+        }
+
+        async function selectChat(chatId) {
+            currentChat = chatId;
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.chatId === chatId);
+            });
+            
+            appData.messages = await fetchAPI('/api/messages?chat_id=' + chatId);
+            renderMessages();
+        }
+
+        navItems.forEach(item => item.addEventListener('click', () => selectPanel(item.dataset.panel)));
+
+        document.getElementById('add-group-btn').addEventListener('click', async () => {
+            const input = document.getElementById('group-link-input');
+            const link = input.value.trim();
+            if (!link) return;
+
+            try {
+                const res = await fetch('/api/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link: link })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert("Бот добавлен в группу!");
+                    input.value = '';
+                    appData.groups = await fetchAPI('/api/groups');
+                    appData.chats = appData.groups; // Sync
+                    renderGroups();
+                    renderChatList();
+                } else {
+                    alert("Ошибка: " + (data.error || "Неизвестная ошибка"));
+                }
+            } catch(e) {
+                alert("Ошибка сети");
+            }
+        });
+
+        async function init() {
+            // Load initial data
+            appData.users = await fetchAPI('/api/users');
+            appData.groups = await fetchAPI('/api/groups');
+            appData.chats = appData.groups; 
+
+            renderUsers();
+            renderGroups();
+            renderChatList();
+            renderMessages(); 
+        }
+
+        init();
+    </script>
+</body>
+</html>

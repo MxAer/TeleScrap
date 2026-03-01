@@ -1,0 +1,47 @@
+{{ define "content" }}
+<!-- Chats Panel -->
+<div id="chats-panel" class="panel-visible flex flex-col flex-1">
+    <header class="content-header glass-panel">
+        <h1 class="content-title">Чаты</h1>
+    </header>
+    <div class="content-body">
+        <aside class="chat-list-panel glass-panel">
+            <div class="chat-list-header">
+                <input type="text" class="chat-search" placeholder="Поиск чатов..." id="chat-search-input">
+            </div>
+            <div class="chat-list" id="chat-list"></div>
+        </aside>
+
+        <section class="messages-panel glass-panel">
+            <div class="messages-toolbar">
+                <div class="tab-switcher">
+                    <button class="tab-btn active">Сообщения</button>
+                </div>
+            </div>
+            <div class="messages-container" id="messages-container"></div>
+        </section>
+    </div>
+</div>
+
+<!-- Users Panel -->
+<div id="users-panel" class="panel-hidden flex flex-col flex-1">
+    <header class="content-header glass-panel">
+        <h1 class="content-title">Пользователи</h1>
+    </header>
+    <div class="users-grid" id="users-grid"></div>
+</div>
+
+<!-- Groups Panel -->
+<div id="groups-panel" class="panel-hidden flex flex-col flex-1">
+    <header class="content-header glass-panel">
+        <h1 class="content-title">Группы</h1>
+    </header>
+    <div class="groups-panel glass-panel" style="flex: 1; margin: 0;">
+        <div class="add-group-form">
+            <input type="text" class="add-group-input" placeholder="Введите ссылку на группу (t.me/...)" id="group-link-input">
+            <button class="add-group-btn" id="add-group-btn">Добавить бота</button>
+        </div>
+        <div id="groups-list"></div>
+    </div>
+</div>
+{{ end }}
