@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+ [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-green.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 Скраппер-юзербот для Telegram на Go с интерфейсом для просмотра собранных данных
 

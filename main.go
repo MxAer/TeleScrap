@@ -33,9 +33,9 @@ func main() {
     // Переменные для бд
     dbHost := getEnv("DB_HOST", "localhost")
     dbUser := getEnv("DB_USER", "postgres")
-    dbPassword := getEnv("DB_PASSWORD", "root")
+    dbPassword := getEnv("DB_PASSWORD", "postgres")
     dbName := getEnv("DB_NAME", "telescrap")
-    dbPort := getEnv("DB_PORT", "5430")
+    dbPort := getEnv("DB_PORT", "5432")
     dbSSLMode := getEnv("DB_SSLMODE", "disable")
 
     dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
@@ -49,10 +49,16 @@ func main() {
         log.Fatalf("failed to connect database: %v", err)
     }
 
+    err = database.Init(db)
+    if err != nil {
+        log.Fatalf("failed to connect database: %v", err)
+    }
+
+
     // Переменные для тг
-    appID := os.Getenv("APP_ID")
-    appHash := os.Getenv("APP_HASH")
-    phone := os.Getenv("USER_PHONE")
+    appID := os.Getenv("TG_APP_ID")
+    appHash := os.Getenv("TG_APP_HASH")
+    phone := os.Getenv("TG_PHONE")
 
     appIDInt, err := strconv.Atoi(appID)
     if err != nil {
@@ -77,7 +83,7 @@ func main() {
     log.Println("Бот успешно авторизован!")
 
     // Загружаем html шаблоны
-    tmplPath := filepath.Join(".", "telescrap", "templates", "pages")
+    tmplPath := filepath.Join(".","templates", "pages")
     if err := templates.LoadTemplates(tmplPath); err != nil {
         log.Fatalf("Ошибка загрузки шаблонов: %v", err)
     }
@@ -330,7 +336,7 @@ func AddUser(client *telegram.Client, db *gorm.DB, id int64) error {
     }
 
     var userStructed structs.User
-    userStructed.ID = strconv.FormatInt(user.ID, 10)
+    userStructed.ID = int(user.ID)
     userStructed.Username = user.Username
     userStructed.PhoneNumber = user.Phone
     userStructed.FirstName = user.FirstName
