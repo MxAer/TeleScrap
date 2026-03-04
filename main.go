@@ -1,7 +1,6 @@
 package main
 
 import (
-    "encoding/json"
     "fmt"
     "log"
     "net/http"
@@ -25,8 +24,16 @@ import (
 var db *gorm.DB
 var tgClient *telegram.Client
 
-type AddGroupRequest struct {
-    Link string `json:"link"`
+// PageData для передачи данных в шаблон
+type PageData struct {
+    Users        []structs.User
+    Groups       []structs.Group
+    Messages     []structs.Message
+    Links        []structs.Link
+    MediaFiles   []structs.Message
+    ChatList     []templates.ChatItem // Новый тип для списка чатов
+    SelectedChat string
+    CurrentPanel string
 }
 
 func main() {
@@ -49,16 +56,14 @@ func main() {
         log.Fatalf("failed to connect database: %v", err)
     }
 
-    err = database.Init(db)
-    if err != nil {
-        log.Fatalf("failed to connect database: %v", err)
+    if err := database.Init(db); err != nil {
+        log.Fatalf("failed to init database: %v", err)
     }
-
 
     // Переменные для тг
     appID := os.Getenv("TG_APP_ID")
-    appHash := os.Getenv("TG_APP_HASH")
-    phone := os.Getenv("TG_PHONE")
+    appHash := ("TG_APP_HASH")
+    phone := os.Getenv("TG_APP_PHONE")
 
     appIDInt, err := strconv.Atoi(appID)
     if err != nil {
@@ -82,15 +87,14 @@ func main() {
     }
     log.Println("Бот успешно авторизован!")
 
-    // Загружаем html шаблоны
-    tmplPath := filepath.Join(".","templates", "pages")
+    tmplPath := filepath.Join(".", "templates", "pages")
     if err := templates.LoadTemplates(tmplPath); err != nil {
         log.Fatalf("Ошибка загрузки шаблонов: %v", err)
     }
 
     go startWebServer()
 
-    // Хендлер сообщений для телеги
+    // Хендлер сообщений
     client.On(telegram.OnMessage, func(message *telegram.NewMessage) error {
         me, _ := client.GetMe()
         if me != nil && message.SenderID() == me.ID {
@@ -147,7 +151,7 @@ func main() {
 
         var messageData structs.Message
         messageData.ID = uuid.New().String()
-        messageData.TGID = strconv.FormatInt(int64(message.ID), 10)
+        messageData.TGID = int(int64(message.ID))
         messageData.SenderID = strconv.FormatInt(message.SenderID(), 10)
         messageData.GroupID = strconv.FormatInt(message.ChatID(), 10)
         messageData.Message = message.Text()
@@ -158,13 +162,13 @@ func main() {
             }
         }
 
-       
         messageData.IsPinned = message.Message.Pinned
         messageData.Media = mediaPaths
 
-        if !IsHere(messageData.SenderID, db) {
-            senderIDInt, _ := strconv.ParseInt(messageData.SenderID, 10, 64)
-            if err := AddUser(client, db, senderIDInt); err != nil {
+        senderIDInt, _ := strconv.Atoi(messageData.SenderID)
+        if !database.IsHere(senderIDInt, db) {
+            senderIDInt64, _ := strconv.ParseInt(messageData.SenderID, 10, 64)
+            if err := AddUser(client, db, senderIDInt64); err != nil {
                 log.Printf("Ошибка добавления юзера в БД: %v", err)
             }
         }
@@ -187,13 +191,13 @@ func main() {
     log.Println("Получен сигнал остановки, завершаем работу...")
     client.Disconnect()
 }
-// тут типаAPI
+
 func startWebServer() {
+    http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+    http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./files"))))
+
     http.HandleFunc("/", indexHandler)
-    http.HandleFunc("/api/users", apiUsersHandler)
-    http.HandleFunc("/api/groups", apiGroupsHandler)
-    http.HandleFunc("/api/messages", apiMessagesHandler)
-    http.HandleFunc("/api/join", apiJoinGroupHandler)
+    http.HandleFunc("/join", joinGroupHandler)
 
     log.Println("Веб-интерфейс запущен на :6767")
     if err := http.ListenAndServe(":6767", nil); err != nil {
@@ -202,74 +206,117 @@ func startWebServer() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-    if err := templates.Render(w, "layout.html", nil); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+    selectedChat := r.URL.Query().Get("chat_id")
+    currentPanel := r.URL.Query().Get("panel")
+    if currentPanel == "" {
+        currentPanel = "chats"
     }
-}
 
-func apiUsersHandler(w http.ResponseWriter, r *http.Request) {
-    users, err := database.Get[structs.User](time.Time{}, time.Time{}, db)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(users)
-}
+    users, _ := database.Get[structs.User](db)
+    groups, _ := database.Get[structs.Group](db)
+    links, _ := database.Get[structs.Link](db)
 
-func apiGroupsHandler(w http.ResponseWriter, r *http.Request) {
-    groups, err := database.Get[structs.Group](time.Time{}, time.Time{}, db)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(groups)
-}
-
-func apiMessagesHandler(w http.ResponseWriter, r *http.Request) {
-    chatID := r.URL.Query().Get("chat_id")
     var messages []structs.Message
+    if selectedChat != "" {
+        messages, _ = database.Get[structs.Message](db, database.WithGroupID(selectedChat))
+    }
+
+    var mediaFiles []structs.Message
+    db.Where("media IS NOT NULL").Find(&mediaFiles)
+
+    chatList := make([]templates.ChatItem, 0)
     
-    query := db
-    if chatID != "" {
-        query = query.Where("group_id = ?", chatID)
+    for _, g := range groups {
+        chatList = append(chatList, templates.ChatItem{
+            ID:          g.TGID,
+            Name:        g.Name,
+            Avatar:      string([]rune(g.Name)[0]), 
+            IsGroup:     true,
+            Description: g.Description,
+            Subscribers: fmt.Sprintf("%d", g.Subscribers),
+        })
     }
 
-    if err := query.Find(&messages).Error; err != nil {
+    // Создаем мапу групп для быстрого поиска
+    groupMap := make(map[string]bool)
+    for _, g := range groups {
+        groupMap[g.TGID] = true
+    }
+    
+    // Создаем мапу юзеров для поиска по ID
+    userMap := make(map[string]structs.User)
+    for _, u := range users {
+        userMap[strconv.Itoa(u.ID)] = u
+    }
+
+    var allMessages []structs.Message
+    db.Select("group_id").Find(&allMessages)
+    
+    seenChats := make(map[string]bool) 
+    
+    for _, msg := range allMessages {
+        if msg.GroupID == "" || seenChats[msg.GroupID] {
+            continue
+        }
+        seenChats[msg.GroupID] = true
+        
+        // Если это не группа, пробуем найти юзера
+        if !groupMap[msg.GroupID] {
+            if user, ok := userMap[msg.GroupID]; ok {
+                name := user.FirstName
+                if name == "" {
+                    name = user.Username
+                }
+                avatar := "?"
+                if len(name) > 0 {
+                    avatar = string([]rune(name)[0])
+                }
+                chatList = append(chatList, templates.ChatItem{
+                    ID:          msg.GroupID,
+                    Name:        name,
+                    Avatar:      avatar,
+                    IsGroup:     false,
+                    Description: user.Username,
+                    Subscribers: "Личный чат",
+                })
+            }
+        }
+    }
+
+    data := PageData{
+        Users:        users,
+        Groups:       groups,
+        Messages:     messages,
+        Links:        links,
+        MediaFiles:   mediaFiles,
+        ChatList:     chatList, 
+        SelectedChat: selectedChat,
+        CurrentPanel: currentPanel,
+    }
+
+    if err := templates.Render(w, "layout.html", data); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
     }
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(messages)
 }
 
-func apiJoinGroupHandler(w http.ResponseWriter, r *http.Request) {
+func joinGroupHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        http.Redirect(w, r, "/", http.StatusSeeOther)
         return
     }
-
-    var req AddGroupRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, "Invalid JSON", http.StatusBadRequest)
-        return
+    link := r.FormValue("link")
+    if link != "" {
+        err := AddByLink(link)
+        if err != nil {
+            log.Printf("Ошибка добавления группы: %v", err)
+        }
     }
-
-    err := AddByLink(req.Link)
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Ошибка добавления: %v", err), http.StatusInternalServerError)
-        return
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+    http.Redirect(w, r, "/?panel=groups", http.StatusSeeOther)
 }
 
 func AddByLink(link string) error {
     log.Printf("Попытка добавить бота в группу: %s", link)
-    return fmt.Errorf("функция AddByLink не реализована")
+    return nil
 }
 
 func getEnv(env string, def string) string {
@@ -288,6 +335,8 @@ func getExtensionFromMime(mime string) string {
         return ".png"
     case "image/gif":
         return ".gif"
+    case "image/webp":
+        return ".webp"
     case "video/mp4":
         return ".mp4"
     case "audio/mpeg":
@@ -297,12 +346,6 @@ func getExtensionFromMime(mime string) string {
     default:
         return ".bin"
     }
-}
-
-func IsHere(id string, db *gorm.DB) bool {
-    var count int64
-    db.Model(&structs.User{}).Where("ID = ?", id).Count(&count)
-    return count > 0
 }
 
 func AddUser(client *telegram.Client, db *gorm.DB, id int64) error {

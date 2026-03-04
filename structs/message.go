@@ -5,10 +5,10 @@ import (
 )
 
 type Message struct {
-    ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+    ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+    TGID        int       `gorm:"type:integer;not_null" json:"tgid"`
     GroupID       string    `gorm:"type:varchar(36);column:group_id" json:"group_id,omitempty"`
     SenderID      string    `gorm:"type:varchar(36);column:sender_id;not null" json:"sender_id"`
-    TGID          string    `gorm:"column:tg_message_id" json:"tg_message_id"`
     Message       string    `gorm:"type:text;column:message" json:"message"`
     Media         []string  `gorm:"type:jsonb;serializer:json;column:media" json:"media"` 
     CreatedAt     time.Time `gorm:"column:created_at;index" json:"created_at"`

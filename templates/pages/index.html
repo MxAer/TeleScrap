@@ -1,47 +1,173 @@
 {{ define "content" }}
-<!-- Chats Panel -->
-<div id="chats-panel" class="panel-visible flex flex-col flex-1">
+
+{{ $isChats := eq .CurrentPanel "chats" }}
+<div id="chats-panel" class="flex flex-col flex-1 {{ if not $isChats }}panel-hidden{{ else }}panel-visible{{ end }}">
     <header class="content-header glass-panel">
         <h1 class="content-title">Чаты</h1>
     </header>
     <div class="content-body">
         <aside class="chat-list-panel glass-panel">
             <div class="chat-list-header">
-                <input type="text" class="chat-search" placeholder="Поиск чатов..." id="chat-search-input">
+                <input type="text" class="chat-search" placeholder="Поиск чатов...">
             </div>
-            <div class="chat-list" id="chat-list"></div>
+            <div class="chat-list">
+                {{ range $index, $item := .ChatList }}
+                <a href="/?panel=chats&chat_id={{ $item.ID }}" class="chat-item stagger-item {{ if eq $.SelectedChat $item.ID }}active{{ end }}" style="animation-delay: {{ mul $index 0.05 }}s">
+                    
+                    <div class="chat-avatar {{ if $item.IsGroup }}group{{ else }}user{{ end }}">
+                        {{ if $item.Avatar }}{{ $item.Avatar }}{{ else }}?{{ end }}
+                    </div>
+                    
+                    <div class="chat-info">
+                        <div class="chat-name">{{ $item.Name }}</div>
+                        <div class="chat-preview">{{ $item.Description }}</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div class="chat-time">{{ $item.Subscribers }}</div>
+                    </div>
+                </a>
+                {{ end }}
+            </div>
         </aside>
 
         <section class="messages-panel glass-panel">
             <div class="messages-toolbar">
                 <div class="tab-switcher">
-                    <button class="tab-btn active">Сообщения</button>
+                    <span class="tab-btn active">Сообщения</span>
                 </div>
             </div>
-            <div class="messages-container" id="messages-container"></div>
+            <div class="messages-container">
+                {{ if .Messages }}
+                    {{ range $index, $msg := .Messages }}
+                    <div class="message-item incoming stagger-item" style="animation-delay: {{ mul $index 0.05 }}s">
+                        <div class="message-header">
+                            <span class="message-sender">User #{{ $msg.SenderID }}</span>
+                            <span class="message-time">{{ formatDate $msg.CreatedAt }}</span>
+                        </div>
+                        <div class="message-content">{{ $msg.Message }}</div>
+                        {{ if $msg.Media }}
+                        <div class="mt-2 text-xs text-purple-400 flex gap-2 flex-wrap">
+                            {{ range $path := $msg.Media }}
+                            <a href="/{{ $path }}" target="_blank" class="underline">Файл</a>
+                            {{ end }}
+                        </div>
+                        {{ end }}
+                    </div>
+                    {{ end }}
+                {{ else }}
+                    <div style="color: var(--fg-muted); text-align: center; padding: 50px;">Выберите чат для просмотра сообщений</div>
+                {{ end }}
+            </div>
         </section>
     </div>
 </div>
 
 <!-- Users Panel -->
-<div id="users-panel" class="panel-hidden flex flex-col flex-1">
+{{ $isUsers := eq .CurrentPanel "users" }}
+<div id="users-panel" class="flex flex-col flex-1 {{ if not $isUsers }}panel-hidden{{ else }}panel-visible{{ end }}">
     <header class="content-header glass-panel">
         <h1 class="content-title">Пользователи</h1>
     </header>
-    <div class="users-grid" id="users-grid"></div>
+    <div class="users-grid">
+        {{ range $index, $user := .Users }}
+        <div class="user-card glass-panel stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
+            <div class="user-card-header">
+                <div class="user-avatar-large">{{ if $user.FirstName }}{{ slice $user.FirstName 0 1 }}{{ else }}?{{ end }}</div>
+                <div>
+                    <h3 class="text-lg font-semibold">{{ $user.FirstName }} {{ $user.LastName }}</h3>
+                    <p style="font-size: 13px; color: var(--fg-secondary);">@{{ $user.Username }}</p>
+                </div>
+            </div>
+            <p style="font-size: 13px; color: var(--fg-secondary);">{{ $user.Description }}</p>
+        </div>
+        {{ end }}
+    </div>
 </div>
 
-<!-- Groups Panel -->
-<div id="groups-panel" class="panel-hidden flex flex-col flex-1">
+{{ $isGroups := eq .CurrentPanel "groups" }}
+<div id="groups-panel" class="flex flex-col flex-1 {{ if not $isGroups }}panel-hidden{{ else }}panel-visible{{ end }}">
     <header class="content-header glass-panel">
         <h1 class="content-title">Группы</h1>
     </header>
     <div class="groups-panel glass-panel" style="flex: 1; margin: 0;">
-        <div class="add-group-form">
-            <input type="text" class="add-group-input" placeholder="Введите ссылку на группу (t.me/...)" id="group-link-input">
-            <button class="add-group-btn" id="add-group-btn">Добавить бота</button>
+        <form class="add-group-form" action="/join" method="POST">
+            <input type="text" name="link" class="add-group-input" placeholder="Введите ссылку на группу (t.me/...)">
+            <button type="submit" class="add-group-btn">Добавить бота</button>
+        </form>
+        <div id="groups-list">
+            {{ range $index, $grp := .Groups }}
+            <div class="group-card glass-panel-light stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
+                <div class="group-card-header">
+                    <div class="group-icon">{{ if $grp.Name }}{{ slice $grp.Name 0 1 }}{{ else }}G{{ end }}</div>
+                    <div>
+                        <h3 class="font-semibold">{{ $grp.Name }}</h3>
+                        <p style="font-size: 12px; color: var(--fg-secondary);">{{ $grp.Subscribers }} участников</p>
+                    </div>
+                </div>
+                <p style="font-size: 13px; color: var(--fg-secondary);">{{ $grp.Description }}</p>
+            </div>
+            {{ end }}
         </div>
-        <div id="groups-list"></div>
     </div>
 </div>
+
+{{ $isLinks := eq .CurrentPanel "links" }}
+<div id="links-panel" class="flex flex-col flex-1 {{ if not $isLinks }}panel-hidden{{ else }}panel-visible{{ end }}">
+    <header class="content-header glass-panel">
+        <h1 class="content-title">Ссылки</h1>
+    </header>
+    <div class="links-table-container glass-panel" style="flex: 1; margin: 0;">
+        <div id="links-list">
+            {{ range $index, $link := .Links }}
+            <div class="link-item stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
+                <div class="link-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </div>
+                <div class="link-content">
+                    <div class="link-url">{{ $link.Link }}</div>
+                    <div class="link-meta">Впервые: {{ formatDate $link.CreatedAt }}</div>
+                </div>
+                <div class="link-count">ID: {{ $link.ID }}</div>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+
+{{ $isMedia := eq .CurrentPanel "media" }}
+<div id="media-panel" class="flex flex-col flex-1 {{ if not $isMedia }}panel-hidden{{ else }}panel-visible{{ end }}">
+    <header class="content-header glass-panel">
+        <h1 class="content-title">Медиа</h1>
+    </header>
+    <div class="glass-panel media-table-container" style="flex: 1; margin: 0;">
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>Файл</th>
+                    <th>Тип</th>
+                    <th>Чат ID</th>
+                    <th>Дата</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range $msg := .MediaFiles }}
+                    {{ range $file := $msg.Media }}
+                    <tr>
+                        <td>
+                            <div class="file-name">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                <a href="/{{ $file }}" class="hover:text-green-400">{{ $file }}</a>
+                            </div>
+                        </td>
+                        <td>Файл</td>
+                        <td>{{ $msg.GroupID }}</td>
+                        <td>{{ formatDate $msg.CreatedAt }}</td>
+                    </tr>
+                    {{ end }}
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {{ end }}
