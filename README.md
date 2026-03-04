@@ -25,7 +25,7 @@
 - Склонируйте репозиторий с помощью `git clone https://github.com/MxAer/TeleScrap`
   
 
-- Создайте файл со своими переменными для запуска по примеру [.env.example](https://github.com/MxAer/TeleScrap/.env.example)
+- Создайте файл со своими переменными для запуска по примеру [.env.example](https://github.com/MxAer/TeleScrap/blob/main/.env.example)
   
 
 - Введите в терминал, открытый в папке склонированного репозитория `docker compose up -d`
