@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  # Ваше приложение
   app:
-    env_file: - .env
     build: .
     container_name: telescrap_app
+    env_file:
+      - .env
     ports:
       - "6767:6767"
     environment:
@@ -15,10 +15,6 @@ services:
       - DB_NAME=telescrap
       - DB_PORT=5432
       - DB_SSLMODE=disable
-      
-      - TG_APP_ID=${TG_APP_ID}
-      - TG_APP_HASH=${TG_APP_HASH}
-      - TG_APP_PHONE=${TG_APP_PHONE}
     depends_on:
       db:
         condition: service_healthy
