@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Ваше приложение
   app:
-    env_file: - .env
+    env_file: .env
     build: .
     container_name: telescrap_app
     ports:
