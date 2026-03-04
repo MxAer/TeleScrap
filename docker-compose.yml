@@ -16,9 +16,9 @@ services:
       - DB_PORT=5432
       - DB_SSLMODE=disable
       
-      - APP_ID=${APP_ID}
-      - APP_HASH=${APP_HASH}
-      - USER_PHONE=${USER_PHONE}
+      - TG_APP_ID=${TG_APP_ID}
+      - TG_APP_HASH=${TG_APP_HASH}
+      - TG_APP_PHONE=${TG_APP_PHONE}
     depends_on:
       db:
         condition: service_healthy
