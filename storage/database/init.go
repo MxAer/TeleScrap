@@ -15,7 +15,7 @@ func Init(db *gorm.DB) error {
 		return err
 	}
 
-	err = db.AutoMigrate(&structs.Group{})
+	err = db.AutoMigrate(&structs.Channel{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 		return err

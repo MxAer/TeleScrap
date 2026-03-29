@@ -1,23 +1,26 @@
 {{ define "content" }}
+<script>
+window.__usersData = {{ json .Users }};
+window.__groupsData = {{ json .Groups }};
+window.__mediaData = {{ json .MediaFiles }};
+</script>
 
 {{ $isChats := eq .CurrentPanel "chats" }}
 <div id="chats-panel" class="flex flex-col flex-1 {{ if not $isChats }}panel-hidden{{ else }}panel-visible{{ end }}">
-    <header class="content-header glass-panel">
+    <header class="content-header">
         <h1 class="content-title">Чаты</h1>
     </header>
     <div class="content-body">
-        <aside class="chat-list-panel glass-panel">
+        <aside class="chat-list-panel">
             <div class="chat-list-header">
                 <input type="text" class="chat-search" placeholder="Поиск чатов...">
             </div>
             <div class="chat-list">
                 {{ range $index, $item := .ChatList }}
                 <a href="/?panel=chats&chat_id={{ $item.ID }}" class="chat-item stagger-item {{ if eq $.SelectedChat $item.ID }}active{{ end }}" style="animation-delay: {{ mul $index 0.05 }}s">
-                    
                     <div class="chat-avatar {{ if $item.IsGroup }}group{{ else }}user{{ end }}">
                         {{ if $item.Avatar }}{{ $item.Avatar }}{{ else }}?{{ end }}
                     </div>
-                    
                     <div class="chat-info">
                         <div class="chat-name">{{ $item.Name }}</div>
                         <div class="chat-preview">{{ $item.Description }}</div>
@@ -29,14 +32,13 @@
                 {{ end }}
             </div>
         </aside>
-
-        <section class="messages-panel glass-panel">
+        <section class="messages-panel">
             <div class="messages-toolbar">
                 <div class="tab-switcher">
                     <span class="tab-btn active">Сообщения</span>
                 </div>
             </div>
-            <div class="messages-container">
+            <div class="messages-container" id="messagesContainer">
                 {{ if .Messages }}
                     {{ range $index, $msg := .Messages }}
                     <div class="message-item incoming stagger-item" style="animation-delay: {{ mul $index 0.05 }}s">
@@ -46,39 +48,38 @@
                         </div>
                         <div class="message-content">{{ $msg.Message }}</div>
                         {{ if $msg.Media }}
-                        <div class="mt-2 text-xs text-purple-400 flex gap-2 flex-wrap">
+                        <div class="message-media">
                             {{ range $path := $msg.Media }}
-                            <a href="/{{ $path }}" target="_blank" class="underline">Файл</a>
+                            <span class="message-file" data-copy="{{ $path }}">{{ $path }}</span>
                             {{ end }}
                         </div>
                         {{ end }}
                     </div>
                     {{ end }}
                 {{ else }}
-                    <div style="color: var(--fg-muted); text-align: center; padding: 50px;">Выберите чат для просмотра сообщений</div>
+                <div class="empty-state">Выберите чат для просмотра сообщений</div>
                 {{ end }}
             </div>
         </section>
     </div>
 </div>
 
-<!-- Users Panel -->
 {{ $isUsers := eq .CurrentPanel "users" }}
 <div id="users-panel" class="flex flex-col flex-1 {{ if not $isUsers }}panel-hidden{{ else }}panel-visible{{ end }}">
-    <header class="content-header glass-panel">
+    <header class="content-header">
         <h1 class="content-title">Пользователи</h1>
     </header>
     <div class="users-grid">
         {{ range $index, $user := .Users }}
-        <div class="user-card glass-panel stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
+        <div class="user-card stagger-item" data-user-index="{{ $index }}" style="animation-delay: {{ mul $index 0.08 }}s">
             <div class="user-card-header">
                 <div class="user-avatar-large">{{ if $user.FirstName }}{{ slice $user.FirstName 0 1 }}{{ else }}?{{ end }}</div>
                 <div>
                     <h3 class="text-lg font-semibold">{{ $user.FirstName }} {{ $user.LastName }}</h3>
-                    <p style="font-size: 13px; color: var(--fg-secondary);">@{{ $user.Username }}</p>
+                    <p class="text-muted">@{{ $user.Username }}</p>
                 </div>
             </div>
-            <p style="font-size: 13px; color: var(--fg-secondary);">{{ $user.Description }}</p>
+            <p class="text-muted">{{ $user.Description }}</p>
         </div>
         {{ end }}
     </div>
@@ -86,25 +87,25 @@
 
 {{ $isGroups := eq .CurrentPanel "groups" }}
 <div id="groups-panel" class="flex flex-col flex-1 {{ if not $isGroups }}panel-hidden{{ else }}panel-visible{{ end }}">
-    <header class="content-header glass-panel">
+    <header class="content-header">
         <h1 class="content-title">Группы</h1>
     </header>
-    <div class="groups-panel glass-panel" style="flex: 1; margin: 0;">
+    <div class="groups-panel">
         <form class="add-group-form" action="/join" method="POST">
             <input type="text" name="link" class="add-group-input" placeholder="Введите ссылку на группу (t.me/...)">
             <button type="submit" class="add-group-btn">Добавить бота</button>
         </form>
-        <div id="groups-list">
+        <div class="groups-list">
             {{ range $index, $grp := .Groups }}
-            <div class="group-card glass-panel-light stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
+            <div class="group-card stagger-item" data-group-index="{{ $index }}" style="animation-delay: {{ mul $index 0.08 }}s">
                 <div class="group-card-header">
                     <div class="group-icon">{{ if $grp.Name }}{{ slice $grp.Name 0 1 }}{{ else }}G{{ end }}</div>
                     <div>
                         <h3 class="font-semibold">{{ $grp.Name }}</h3>
-                        <p style="font-size: 12px; color: var(--fg-secondary);">{{ $grp.Subscribers }} участников</p>
+                        <p class="text-muted">{{ $grp.Subscribers }} участников</p>
                     </div>
                 </div>
-                <p style="font-size: 13px; color: var(--fg-secondary);">{{ $grp.Description }}</p>
+                <p class="text-muted">{{ $grp.Description }}</p>
             </div>
             {{ end }}
         </div>
@@ -113,10 +114,10 @@
 
 {{ $isLinks := eq .CurrentPanel "links" }}
 <div id="links-panel" class="flex flex-col flex-1 {{ if not $isLinks }}panel-hidden{{ else }}panel-visible{{ end }}">
-    <header class="content-header glass-panel">
+    <header class="content-header">
         <h1 class="content-title">Ссылки</h1>
     </header>
-    <div class="links-table-container glass-panel" style="flex: 1; margin: 0;">
+    <div class="links-table-container">
         <div id="links-list">
             {{ range $index, $link := .Links }}
             <div class="link-item stagger-item" style="animation-delay: {{ mul $index 0.08 }}s">
@@ -136,37 +137,66 @@
 
 {{ $isMedia := eq .CurrentPanel "media" }}
 <div id="media-panel" class="flex flex-col flex-1 {{ if not $isMedia }}panel-hidden{{ else }}panel-visible{{ end }}">
-    <header class="content-header glass-panel">
+    <header class="content-header">
         <h1 class="content-title">Медиа</h1>
+        <div class="content-subtitle">{{ len .MediaFiles }} файлов</div>
     </header>
-    <div class="glass-panel media-table-container" style="flex: 1; margin: 0;">
-        <table class="file-table">
-            <thead>
-                <tr>
-                    <th>Файл</th>
-                    <th>Тип</th>
-                    <th>Чат ID</th>
-                    <th>Дата</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ range $msg := .MediaFiles }}
-                    {{ range $file := $msg.Media }}
-                    <tr>
-                        <td>
-                            <div class="file-name">
-                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                                <a href="/{{ $file }}" class="hover:text-green-400">{{ $file }}</a>
+    <div class="media-panel">
+        <div class="media-grid">
+            {{ range $msg := .MediaFiles }}
+                {{ range $idx, $file := $msg.Media }}
+                    {{ $ext := lower (ext $file) }}
+                    {{ $isImage := or (eq $ext ".jpg") (eq $ext ".jpeg") (eq $ext ".png") (eq $ext ".webp") (eq $ext ".gif") }}
+                    {{ $isVideo := or (eq $ext ".mp4") (eq $ext ".webm") (eq $ext ".mov") }}
+                    <div class="media-item" 
+                         data-path="{{ $file }}" 
+                         data-type="{{ if $isImage }}image{{ else if $isVideo }}video{{ else }}file{{ end }}"
+                         data-name="{{ base $file }}">
+                        {{ if $isImage }}
+                            <img src="{{ replace $file "\\" "/" }}"  
+                                 alt="{{ base $file }}" 
+                                 class="media-thumb"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="media-icon" style="display:none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>{{ base $file }}</span>
                             </div>
-                        </td>
-                        <td>Файл</td>
-                        <td>{{ $msg.GroupID }}</td>
-                        <td>{{ formatDate $msg.CreatedAt }}</td>
-                    </tr>
-                    {{ end }}
+                            <span class="media-type-badge">IMG</span>
+                        {{ else if $isVideo }}
+                            <div class="media-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                                </svg>
+                                <span>{{ base $file }}</span>
+                            </div>
+                            <span class="media-type-badge">VID</span>
+                        {{ else }}
+                            <div class="media-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span>{{ base $file }}</span>
+                            </div>
+                            <span class="media-type-badge">{{ upper $ext }}</span>
+                        {{ end }}
+                        <div class="media-info">
+                            <div class="media-name">{{ base $file }}</div>
+                            <div class="media-meta">Чат {{ $msg.GroupID }} • {{ formatDate $msg.CreatedAt }}</div>
+                        </div>
+                    </div>
                 {{ end }}
-            </tbody>
-        </table>
+            {{ end }}
+        </div>
     </div>
 </div>
 
